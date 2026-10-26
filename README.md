@@ -55,6 +55,10 @@ This produces:
   - `BoatTactics.exe.config.original`, the game's unmodified config, for uninstalling
   - the player README
 
-To release a new version, bump `Version` and `AssemblyVersion` in [EnhancedErrors.csproj](EnhancedErrors.csproj). The packaged config always references the matching version.
+## Releasing
+
+To release a new version, bump `Version` and `AssemblyVersion` in [EnhancedErrors.csproj](EnhancedErrors.csproj) and push to `main`. The packaged config always references the matching version.
+
+The [release workflow](.github/workflows/release.yml) builds every push to `main` and uploads the zip as a workflow artifact. If no `v<Version>` tag exists yet, it also creates that tag and a GitHub release with the zip attached and auto-generated notes. Pushes that don't change the version are built but not released. The workflow can also be run manually from the Actions tab.
 
 To install a build into a local copy of the game, extract `EnhancedErrors.dll` and `BoatTactics.exe.config` from the zip into the game folder.

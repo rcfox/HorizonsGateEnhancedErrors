@@ -1,0 +1,60 @@
+# Builds every push to main. When the <Version> in EnhancedErrors.csproj has no
+# matching v<version> tag yet, also publishes a GitHub release with the zip.
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content EnhancedErrors.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if (-not $version) { throw "No <Version> in EnhancedErrors.csproj" }
+          $tag = "v$version"
+          git fetch --tags --quiet
+          $exists = [bool](git tag --list $tag)
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "release=$((-not $exists).ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if ($exists) { "Tag $tag already exists; building without releasing." } else { "Will release $tag." }
+
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EnhancedErrors-${{ steps.version.outputs.version }}
+          path: dist/EnhancedErrors-${{ steps.version.outputs.version }}.zip
+
+      - name: Publish release
+        if: steps.version.outputs.release == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" `
+            "dist/EnhancedErrors-${{ steps.version.outputs.version }}.zip" `
+            --target "${{ github.sha }}" `
+            --title "EnhancedErrors ${{ steps.version.outputs.version }}" `
+            --generate-notes
