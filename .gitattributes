@@ -1,0 +1,2 @@
+# Ship the game's original config byte-for-byte.
+Package/BoatTactics.exe.config.original -text

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>EnhancedErrors</AssemblyName>
+    <RootNamespace>EnhancedErrors</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Version>1.0.0.0</Version>
+    <!-- The packaged BoatTactics.exe.config is generated with this version. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <DebugType>embedded</DebugType>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Harmony is embedded into EnhancedErrors.dll so only one file has to be dropped into the game folder. -->
+    <PackageReference Include="Lib.Harmony" Version="2.4.3" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="$(PkgLib_Harmony)\lib\net48\0Harmony.dll" LogicalName="0Harmony.dll" Visible="false" />
+  </ItemGroup>
+
+  <!-- Release builds also produce dist\EnhancedErrors-<version>.zip, ready to share. -->
+  <Target Name="Package" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <PackageStaging>$(BaseIntermediateOutputPath)package\</PackageStaging>
+      <PackageZip>$(MSBuildProjectDirectory)\dist\EnhancedErrors-$(Version).zip</PackageZip>
+      <ConfigText>$([System.IO.File]::ReadAllText('Package\BoatTactics.exe.config.template').Replace('@VERSION@', '$(AssemblyVersion)'))</ConfigText>
+      <ReadmeText>$([System.IO.File]::ReadAllText('Package\README.txt').Replace('@VERSION@', '$(Version)'))</ReadmeText>
+    </PropertyGroup>
+    <RemoveDir Directories="$(PackageStaging)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStaging)" />
+    <Copy SourceFiles="Package\BoatTactics.exe.config.original" DestinationFolder="$(PackageStaging)" />
+    <WriteLinesToFile File="$(PackageStaging)BoatTactics.exe.config" Lines="$(ConfigText)" Overwrite="true" />
+    <WriteLinesToFile File="$(PackageStaging)README.txt" Lines="$(ReadmeText)" Overwrite="true" />
+    <MakeDir Directories="$(MSBuildProjectDirectory)\dist" />
+    <ZipDirectory SourceDirectory="$(PackageStaging)" DestinationFile="$(PackageZip)" Overwrite="true" />
+    <Message Importance="high" Text="EnhancedErrors -> $(PackageZip)" />
+  </Target>
+
+</Project>
